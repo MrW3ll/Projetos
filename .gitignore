@@ -1,0 +1,15 @@
+# Ignorar arquivos soltos que não quero
+.vscode/
+Estudos futuros/
+Aut_limpador.ipynb
+base_dash_copy.py
+canto_pensamento.ipynb
+loc_conv_discador_SECAD.ipynb
+pausas_secad.ipynb
+validacao.ipynb
+confi_banco.py
+
+# Padrões Python/Jupyter sempre ignorar
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
