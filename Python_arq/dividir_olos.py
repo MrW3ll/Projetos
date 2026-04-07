@@ -4,9 +4,9 @@ import os
 import re
 
 try:
-    entrada = r'M:\Comercial\Call Center - OLOS\01.MAILINGS IMPORTADOS\SECAD\RANGE_VALIDACAO\Divididos\STAND BY'
-    saida = r'M:\Comercial\Call Center - OLOS\01.MAILINGS IMPORTADOS\SECAD\RANGE_VALIDACAO\Divididos'
-    arquivo_nome = '_1605_MEDICINA_BASE&LEADS_LEADS&ENGAJADOS_17032026_V5739.csv'
+    entrada = r''
+    saida = r''
+    arquivo_nome = '.csv'
     arquivo = os.path.join(entrada,arquivo_nome)
 
     df = pd.read_csv(arquivo,encoding='latin-1',sep=';')
