@@ -6,9 +6,12 @@ base_dash_copy.py
 canto_pensamento.ipynb
 loc_conv_discador_SECAD.ipynb
 pausas_secad.ipynb
-validacao.ipynb
+dummy.ipynb
 confi_banco.py
-
+queries.py
+db_config.py
+sql/
+*.sql
 # Padrões Python/Jupyter sempre ignorar
 __pycache__/
 *.pyc
