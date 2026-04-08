@@ -16,12 +16,17 @@ def get_engine():
 
 
 def load_qry(qry_name):
-    path = Path(__file__).resolve().parent / 'sql' / qry_name
+    from pathlib import Path
 
-    if not path.exists():
-        raise FileNotFoundError(f"Query file '{qry_name}' not found in 'sql' directory.")
-    
-    with open (path, 'r', encoding='utf-8') as file:
+    base_path = Path.cwd()
+
+    # sobe até achar pasta sql
+    while not (base_path / 'sql').exists():
+        base_path = base_path.parent
+
+    path = base_path / 'sql' / qry_name
+
+    with open(path, 'r', encoding='utf-8') as file:
         return file.read()
 
 

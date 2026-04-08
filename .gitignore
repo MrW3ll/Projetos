@@ -12,6 +12,8 @@ queries.py
 db_config.py
 sql/
 *.sql
+__init__.py
+analise_vendas.ipynb
 # Padrões Python/Jupyter sempre ignorar
 __pycache__/
 *.pyc
