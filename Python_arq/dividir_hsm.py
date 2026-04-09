@@ -4,13 +4,13 @@ import os
 
 try:
     # Pasta de entrada (onde está o arquivo original)
-    pasta_entrada = r"caminho\entrada"
+    pasta_entrada = r"C:\Users\wconceicao\OneDrive - Grupo A Educação SA\Área de Trabalho\Arquivos - Disparos\RANGE\STAND BY"
 
     # Pasta de saída (onde vão ficar os arquivos divididos)
-    pasta_saida = r"caminho\saida"
+    pasta_saida = r"C:\Users\wconceicao\OneDrive - Grupo A Educação SA\Área de Trabalho\Arquivos - Disparos\RANGE"
 
     # Nome do arquivo original
-    arquivo_nome = "arquivo.csv"  # <-- coloque o nome do arquivo aqui
+    arquivo_nome = "cap_ops_carrinho_abandonado_geral.csv"  # <-- coloque o nome do arquivo aqui
 
     # Caminho completo do arquivo de entrada
     arquivo = os.path.join(pasta_entrada, arquivo_nome)
