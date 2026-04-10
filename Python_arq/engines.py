@@ -15,7 +15,7 @@ def get_engine():
     return engine
 
 
-def load_qry(qry_name):
+def load_query(query_name):
     from pathlib import Path
 
     base_path = Path.cwd()
@@ -24,9 +24,10 @@ def load_qry(qry_name):
     while not (base_path / 'sql').exists():
         base_path = base_path.parent
 
-    path = base_path / 'sql' / qry_name
+    path = base_path / 'sql' / query_name
 
     with open(path, 'r', encoding='utf-8') as file:
+        print(f'Carregando query: {query_name}')
         return file.read()
 
 
