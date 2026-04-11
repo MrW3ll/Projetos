@@ -9,8 +9,6 @@ dummy.ipynb
 confi_banco.py
 queries.py
 db_config.py
-sql/
-*.sql
 __init__.py
 analise_vendas.ipynb
 # Padrões Python/Jupyter sempre ignorar
