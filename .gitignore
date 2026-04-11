@@ -1,7 +1,6 @@
 # Ignorar arquivos soltos que não quero
 .vscode/
 Estudos futuros/
-Aut_limpador.ipynb
 base_dash_copy.py
 canto_pensamento.ipynb
 loc_conv_discador_SECAD.ipynb
