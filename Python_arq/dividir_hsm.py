@@ -10,13 +10,13 @@ try:
     pasta_saida = r"C:\Users\wconceicao\OneDrive - Grupo A Educação SA\Área de Trabalho\Arquivos - Disparos\RANGE"
 
     # Nome do arquivo original
-    arquivo_nome = "cap_ops_carrinho_abandonado_geral.csv"  # <-- coloque o nome do arquivo aqui
+    arquivo_nome = "cap_ops_parou_negociacao_secad.csv"  # <-- coloque o nome do arquivo aqui
 
     # Caminho completo do arquivo de entrada
     arquivo = os.path.join(pasta_entrada, arquivo_nome)
 
     # Quantidade de partes desejadas
-    num_partes = 5  # <-- coloque a quantidade de partes aqui
+    num_partes = 10  # <-- coloque a quantidade de partes aqui
 
     # Lê o CSV
     df = pd.read_csv(arquivo)
