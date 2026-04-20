@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from urllib.parse import quote_plus
 from pathlib import Path
 from dotenv import load_dotenv
-from Python_arq.db_config import DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_DATABASE
+from db_config import DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_DATABASE
 
 load_dotenv()
 
@@ -27,7 +27,11 @@ def load_query(query_name):
     path = base_path / 'sql' / query_name
 
     with open(path, 'r', encoding='utf-8') as file:
-        print(f'Carregando query: {query_name}')
         return file.read()
 
 
+def load_qry(qry_name):
+    base_path = Path(__file__).parent.parent
+    path = base_path / 'sql' / qry_name
+    with open(path, 'r', encoding='utf-8') as file:
+        return file.read()
