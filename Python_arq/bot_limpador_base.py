@@ -74,10 +74,36 @@ try:
 except Exception as e:
     print(f'Erro... {e}')
 
+
+
 def padrao_e_filtro(
-    
-):  
-    pass
+        df_base,
+        mapa_colunas,
+        df_rodando_atualmente,
+        df_leadscore_olos,
+        df_leadscore_blip,
+        
+        
+        area=None,
+        base_type=None,
+        program=None,
+        df_blacklist = None,
+        
+    ):
+    resultado = padronizar(df_base,mapa_colunas)
+    resultado = filtrar_base(resultado, area=area, base_type=base_type, program=program)
+    resultado = limpeza_minima(resultado)
+    resultado = lead_score_olos(resultado,df_leadscore_olos)
+    resultado = lead_score_blip(resultado,df_leadscore_blip)
+
+    if df_blacklist is not None:
+        resultado = verificar_blacklist(resultado, df_blacklist)
+    resultado = rod_atual(resultado, df_rodando_atualmente)
+    return resultado
+
+def padronizar(df_base,mapa_colunas):
+    df_padrao = df_base.rename(columns=mapa_colunas)
+    return df_padrao[list(mapa_colunas.values)]
 
 Depara_colunas = {
     'base_inativa':{
@@ -103,12 +129,34 @@ Depara_colunas = {
     'base_hubspot':''
 }
 
-def filtrar_base():
-    pass
+def filtrar_base(df_base, area=None, base_type=None, program=None):
+    resultado = df_base.copy()
 
-def padronizar(df_base,mapa_colunas):
-    df_padrao  =df.rename(columns=mapa_colunas)
-    return df_padrao[list(mapa_colunas.values)]
+    if area is not None:
+        areas = area if isinstance(area, list) else [area]
+        resultado = resultado[
+            resultado['area']
+            .str.upper()
+            .isin([a.upper() for a in areas])
+        ]
+    
+    if base_type is not None:
+        types = base_type if isinstance(base_type, list) else [base_type]
+        resultado = resultado[
+            resultado['type']
+            .str.upper()
+            .isin([t.upper() for t in types])
+        ]
+
+    if program is not None:
+        programs = program if isinstance(program, list) else [program]
+        resultado = resultado[
+            resultado['program']
+            .str.upper()
+            .isin([p.upper() for p in programs])
+        ]        
+
+    return resultado
 
 def limpeza_minima(df_base):
     resultado = df_base.copy()
@@ -131,7 +179,6 @@ def limpeza_minima(df_base):
     resultado = remover_duplicadas(resultado)
 
     return resultado
-
 
 def remover_duplicadas(df_base,id_key='copy'):
     ## utilizado na função LIMPEZA_MININA() ## 
@@ -178,7 +225,6 @@ def verificar_blacklist(df_base,blacklist):
 
     return resultado
 
-
 def rod_atual(df_base,rod_atual):
     resultado = df_base.copy()
     df_rodando_atualmente = rod_atual
@@ -188,14 +234,56 @@ def rod_atual(df_base,rod_atual):
 
     return resultado
 
-def lead_score_olos():
-    pass
+def lead_score_olos(df_base,df_leadscore_olos):
+    resultado = df_base.copy()
+    leadscore = df_leadscore_olos.copy()
 
-def lead_score_blip():
-    pass
+    leadscore['phone_number'] = (
+        leadscore['phone_number'].astype(str).str.replace(r'\D','',regex=True)
+    )
+    
+    resultado['leadscore_olos'] = resultado['phone'].isin(leadscore['phone_number'])
+    resultado = resultado[resultado['leadscore_olos'] == False]
 
-def qtd_calls():
-    pass
+    return resultado
+
+def lead_score_blip(df_base,df_leadscore_blip):
+    resultado = df_base.copy()
+    leadscore = df_leadscore_blip.copy()
+
+    leadscore['phone_number'] = (
+        leadscore['phone_number'].astype(str).str.replace(r'\D','',regex=True)
+    )
+
+    resultado['leadscore_blip'] = resultado['phone'].isin(leadscore['phone_number'])
+    resultado = resultado[resultado['leadscore_blip'] == False]
+
+
+
+    return resultado
+
+def qtd_calls(df_base,qtd_calls,limit=10):
+    resultado = df_base.copy()
+    qtd = qtd_calls.copy()
+
+    qtd['phone_number'] = (
+        qtd['phone_number'].astype(str).str.replace(r'\D','',regex=True)
+    )
+    
+    resultado = resultado.merge(
+        qtd,
+        left_on='phone', 
+        right_on='phone_number', 
+        how='left'
+    )
+
+    resultado['call_count'] = resultado['call_count'].fillna(0).astype(int)
+    resultado = resultado[resultado['call_count'] < limit]
+
+    resultado = resultado.drop(columns=['phone_number','call_count'])
+    
+
+    return resultado
 
 def ultima_compra():
     pass
