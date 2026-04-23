@@ -75,7 +75,7 @@ except Exception as e:
     print(f'Erro... {e}')
 
 
-
+## FUNÇÕES - Inicio ## 
 def padrao_e_filtro(
         df_base,
         mapa_colunas,
@@ -299,3 +299,6 @@ def exportar_bases():
 
 def filtro_final():
     pass
+
+
+## FUNÇÕES - Fim ##

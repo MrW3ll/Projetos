@@ -1,6 +1,11 @@
+import sys
+from pathlib import Path
+
+# Garante que Python_arq está no path, independente de como for chamado
+sys.path.insert(0, str(Path(__file__).parent))
+
 from sqlalchemy import create_engine
 from urllib.parse import quote_plus
-from pathlib import Path
 from dotenv import load_dotenv
 from db_config import DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_DATABASE
 
