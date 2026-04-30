@@ -46,7 +46,7 @@ WITH ranked_calls AS (
 
         FROM integration_operations.vw_call_center_calls
         WHERE campaign_id IN (1025,1553,1605,1690,1299)
-        AND start_agent_date::date >= current_date - interval '5 months'
+        AND start_agent_date::date >= '2026-04-01'
     )
 
     SELECT

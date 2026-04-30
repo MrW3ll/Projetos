@@ -16,6 +16,7 @@ def get_engine():
 
     engine  = create_engine(
         f"postgresql+psycopg2://{DB_USER}:{password_encoded}@{DB_HOST}:{DB_PORT}/{DB_DATABASE}"
+        ,connect_args={'options':'-c statement_timeout=600000'}
     )
     return engine
 
