@@ -11,6 +11,9 @@ queries.py
 db_config.py
 __init__.py
 analise_vendas.ipynb
+
+Projetos/
+Python_arq/
 dummy.py
 # Padrões Python/Jupyter sempre ignorar
 __pycache__/
