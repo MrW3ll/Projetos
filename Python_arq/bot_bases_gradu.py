@@ -36,7 +36,7 @@ mes = dt.datetime.now().month
 ano = dt.datetime.now().year
 
 
-def padronizarBaseDiscador(base_discador): ##PAdroniza a Base de dados para atuação no discador
+def padronizarBaseDiscador(base_discador): ##Padroniza a Base de dados para atuação no discador
 
     resultado = base_discador.copy()
     resultado.columns = (
@@ -54,13 +54,13 @@ def padronizarBaseDiscador(base_discador): ##PAdroniza a Base de dados para atua
     'hubspotcontactid':'HUBSPOTCONTACTID',
     'cpf':'CPF_INSCRITO',
     'telefone':'CELULAR',
-    'Data hora inscrição':'DATA_INSCRICAO',
+    'data hora inscrição':'DATA_INSCRICAO',
     'polo':'POLO',
     'curso':'Curso_Escolhido',
-    'Tipo Ingresso':'TIPO_INGRESSO',
+    'tipo ingresso':'TIPO_INGRESSO',
     'status':'ANO_MAIOR_NOTA',
-    'Data do lead':'MAIOR_NOTA',
-    'Data da Tabulação':'DESCONTO',
+    'data do lead':'MAIOR_NOTA',
+    'data da tabulação':'DESCONTO',
     'last_tab':'FAIXA_DESCONTO'}
 }
 
@@ -68,7 +68,7 @@ def padronizarBaseDiscador(base_discador): ##PAdroniza a Base de dados para atua
         columns=baseRename['base_discador']
     )
 
-    dropCols = ['Qtd. HSM', 'qtd_call', 'Ultima Tabulação']
+    dropCols = ['qtd_hsm', 'qtd_call', 'ultima tabulação','last_ticket_tag']
     resultado = resultado.drop(columns=dropCols, errors='ignore')
 
     return resultado
@@ -88,8 +88,8 @@ def gerarBasesDiscador(base_discador,limiteContato=None): ##Gera a base para atu
     'EADUNISINOS':1680,
     'FAESA':1681,
     'UCS':1681,
-    'UNISAGRADO':1682,
-    'UNIVALI':1682
+    'UNISAGRADO':1681,
+    'UNIVALI':1681
     }
 
 
@@ -111,7 +111,7 @@ def gerarBasesDiscador(base_discador,limiteContato=None): ##Gera a base para atu
                 print(f'Gerando arquivo: {ies} - {status}...')
                 
                 try:
-                    baseStatusFiltrada.to_csv(nomeArquivo, index=False,sep=';')
+                    baseStatusFiltrada.to_csv(nomeArquivo.upper(), sep=";", index=False, encoding="utf-8-sig")
                     print(f'Arquivo gerado com sucesso: {nomeArquivo}')
                 except Exception as e:
                     print(f'Erro ao exportar arquivo: {nomeArquivo} - {str(e)}')    
@@ -131,10 +131,10 @@ def gerarBasesDisparo(base_dados, limiteContato=None,num_partes=None): ##Gera a 
 
 
     if limiteContato is None:
-        limiteContato = base_dados['Qtd. HSM'].max()
+        limiteContato = base_dados['qtd_hsm'].max()
         print(f'Limite de contatos ajustado para {limiteContato} devido ao número máximo de HSMs na base de dados.')
 
-    base_dados = base_dados[base_dados['Qtd. HSM'] <= limiteContato]
+    base_dados = base_dados[base_dados['qtd_hsm'] <= limiteContato]
     base_dados = base_dados[base_dados['ies'].isin(clusterDisparo)]
 
     if num_partes is None: ##Definir o número de partes para dividir a base 
@@ -174,4 +174,4 @@ def gerarBasesDisparo(base_dados, limiteContato=None,num_partes=None): ##Gera a 
 
 
 
-atualizarBase(limite_contato=15, num_partes=4, gerarDiscador=True, gerarDisparo=True)
+atualizarBase(limite_contato=15,num_partes=4, gerarDiscador=True, gerarDisparo=True)

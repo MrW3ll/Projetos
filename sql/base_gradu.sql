@@ -1,90 +1,74 @@
-WITH pivot_ies AS (
-    SELECT *,
-        CASE
-            WHEN sk_product = '14' THEN 'PUCPR'
-            WHEN sk_product = '11' THEN 'UCS'
-            WHEN sk_product = '19' THEN 'FAESA'
-            WHEN sk_product = '22' THEN 'UNIVALI'
-            WHEN sk_product = '34' THEN 'UNISAGRADO'
-            WHEN sk_product = '43' THEN 'EADUNISINOS'
-            ELSE 'not_found'
-        END AS ies
-    FROM mart_sales.rpt_phone_list_sales_ops_campaigns
-),
-map_status AS (
-    SELECT *,
-        CASE
-            WHEN last_ticket_tag ~* '(matricula|recusa|não acionar|sem interesse|ja e aluno|fora do publico|inadimplente|desconhece|sem afinidade)' THEN 0
-            ELSE 1
-        END AS flag_tab
-    FROM pivot_ies
-),
-base_graduacao AS (
-    SELECT ies,
-        subscription_id AS Cód_candidato,
-        UPPER(name) AS Nome,
+WITH base_sales AS (
+    SELECT
+        CASE sk_product
+            WHEN '14' THEN 'PUCPR'
+            WHEN '11' THEN 'UCS'
+            WHEN '19' THEN 'FAESA'
+            WHEN '22' THEN 'UNIVALI'
+            WHEN '34' THEN 'UNISAGRADO'
+            WHEN '43' THEN 'EADUNISINOS'
+        END AS ies,
+        subscription_id AS cod_candidato,
+        UPPER(name) AS nome,
         email,
-        contact_id AS HubspotContactid,
+        contact_id AS hubspotcontactid,
         cpf,
         RIGHT(REGEXP_REPLACE(phone, '[^0-9]', '', 'g'), 11) AS telefone,
-        registration_at::DATE AS "Data hora inscrição",
-        campus AS Polo,
-        last_course_name AS Curso,
-        subscription_status AS Status,
-        CASE
-            WHEN hsm_count IS NULL THEN 0
-            ELSE hsm_count
-        END AS "Qtd. HSM",
-        last_ticket_tag AS "Ultima Tabulação"
-    FROM map_status
-    WHERE person_stage NOT IN ('enrolled')
-        AND flag_tab = 1
+        registration_at::DATE AS data_inscricao,
+        campus AS polo,
+        last_course_name AS curso,
+        ingress_mode AS "tipo ingresso",
+        CASE 
+            WHEN subscription_status = 'Desclassificado' THEN 'Inscrito'
+            ELSE subscription_status
+        END AS status,
+        last_activity_at::date AS "data do lead",
+        last_ticket_interaction_at::date AS "data da tabulação",
+        COALESCE(hsm_count, 0) AS qtd_hsm,
+        CASE 
+            WHEN last_ticket_tag ~* '(matricula|recusa|nao acionar|sem interesse|inadimplente|ja e aluno|telefone incorreto|sem afinidade)'
+                THEN 'Não_acionar'
+            ELSE last_ticket_tag
+        END AS last_ticket_tag
+    FROM mart_sales.rpt_phone_list_sales_ops_campaigns
+    WHERE
+        person_stage <> 'enrolled'
+        AND subscription_status IN ('Avaliado','Desclassificado','Inscrito','Pré-Matriculado')
+        AND is_high_school_graduate IS NOT FALSE
+        AND registration_at >= DATE '2026-01-01'
 ),
-base AS (
-    SELECT RIGHT(
-            REGEXP_REPLACE(phone_number, '[^0-9]', '', 'g'),
-            11
-        ) AS telefone,
-        disposition_nivel_1,
-        start_agent_date
+
+calls_enriched AS (
+    SELECT
+        RIGHT(REGEXP_REPLACE(phone_number, '[^0-9]', '', 'g'), 11) AS telefone,
+        COUNT(*) OVER (PARTITION BY RIGHT(REGEXP_REPLACE(phone_number, '[^0-9]', '', 'g'), 11)) AS qtd_call,
+        FIRST_VALUE(disposition_nivel_1) OVER (
+            PARTITION BY RIGHT(REGEXP_REPLACE(phone_number, '[^0-9]', '', 'g'), 11)
+            ORDER BY start_agent_date DESC
+        ) AS last_tab_raw
     FROM integration_operations.vw_call_center_calls
     WHERE start_agent_date >= current_date - interval '1 month'
 ),
-ranked AS (
-    SELECT *,
-        ROW_NUMBER() OVER(
-            PARTITION BY telefone
-            ORDER BY start_agent_date DESC
-        ) AS rn
-    FROM base
-),
-calls_count AS (
-    SELECT telefone,
-        COUNT(*) AS qtd_call
-    FROM base
-    GROUP BY telefone
-),
-qtd_call AS (
-    SELECT c.telefone,
-        c.qtd_call,
+
+calls_final AS (
+    SELECT DISTINCT
+        telefone,
+        qtd_call,
         CASE
-            WHEN r.disposition_nivel_1 ~* (
-                'matricula|recusa|nao acionar|sem interesse|inadimplente|ja e aluno|telefone incorreto|sem afinidade'
-            ) THEN 'Não_acionar'
-            ELSE r.disposition_nivel_1
+            WHEN last_tab_raw ~* '(matricula|recusa|nao acionar|sem interesse|inadimplente|ja e aluno|telefone incorreto|sem afinidade)'
+                THEN 'Não_acionar'
+            ELSE last_tab_raw
         END AS last_tab
-    FROM calls_count c
-        JOIN ranked r ON c.telefone = r.telefone
-    WHERE r.rn = 1
+    FROM calls_enriched
 )
-SELECT bg.*,
-    qc.qtd_call,
-    qc.last_tab
-FROM base_graduacao bg
-    LEFT JOIN qtd_call qc ON qc.telefone = bg.telefone
-WHERE bg.ies <> 'not_found'
-    AND bg.status IS NOT NULL
-    AND bg."Data hora inscrição" >= DATE '2026-01-01'
-    AND bg."Qtd. HSM" <= 30
-    AND qc.qtd_call <= 30
-    AND qc.last_tab NOT IN ('Não_acionar')
+
+SELECT
+    b.*,
+    c.qtd_call,
+    c.last_tab
+FROM base_sales b
+LEFT JOIN calls_final c
+    ON c.telefone = b.telefone
+WHERE 
+    b.last_ticket_tag IS DISTINCT FROM 'Não_acionar'
+    AND b.ies IS NOT NULL;
