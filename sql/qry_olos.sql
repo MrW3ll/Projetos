@@ -1,3 +1,6 @@
+-- select * from integration_operations.vw_call_center_calls
+
+
 WITH ranked_calls AS (
         SELECT
             RIGHT(phone_number,11) AS phone,
@@ -8,6 +11,7 @@ WITH ranked_calls AS (
             ) AS rn,
             campaign_id,
             tablename,
+            disposition_nivel_1,
             CASE
                 WHEN tablename ~* 'mental|psicologia' THEN 'Psicologia'
                 WHEN tablename ~* 'multi' THEN 'Multi'
@@ -46,7 +50,7 @@ WITH ranked_calls AS (
 
         FROM integration_operations.vw_call_center_calls
         WHERE campaign_id IN (1025,1553,1605,1690,1299)
-        AND start_agent_date::date >= '2026-04-01'
+        AND start_agent_date::date >= '2026-05-01'
     )
 
     SELECT
@@ -54,9 +58,10 @@ WITH ranked_calls AS (
         base_type,
         campaign_id,
         tablename,
+        disposition_nivel_1,
         data,
         hour,
         COUNT(*) AS tentativas,
         SUM(atendida) AS atendidas
     FROM ranked_calls
-    GROUP BY area, data,base_type,hour, tablename, campaign_id
+    GROUP BY area, data,base_type,hour, tablename, campaign_id,disposition_nivel_1

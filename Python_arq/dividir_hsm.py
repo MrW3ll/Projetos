@@ -10,7 +10,7 @@ try:
     pasta_saida = r"C:\Users\wconceicao\OneDrive - Grupo A Educação SA\Área de Trabalho\Arquivos - Disparos\RANGE"
 
     # Nome do arquivo original
-    arquivo_nome = "cap_ops_nutricao_base_leads.csv"  # <-- coloque o nome do arquivo aqui
+    arquivo_nome = "cap_ops_trocaciclo_promef.csv"  # <-- coloque o nome do arquivo aqui
 
     # Caminho completo do arquivo de entrada
     arquivo = os.path.join(pasta_entrada, arquivo_nome)

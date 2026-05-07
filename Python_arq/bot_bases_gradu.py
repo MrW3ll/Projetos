@@ -5,22 +5,20 @@ import engines as engs
 import math
 
 from sqlalchemy import text
-from calendar import day_name
 from sqlalchemy import text
-from pathlib import Path
 
 
-def atualizarBase(limite_contato=None, num_partes=None, gerarDiscador=False, gerarDisparo=False):
-    base_dados = gerarDados()
-    if gerarDiscador:
-        gerarBasesDiscador(base_dados, limiteContato=limite_contato,)
+def atualizar_base(limite_contato=None,status=None ,num_partes=None, gerar_discador=False, gerar_disparo=False): #Função mãe ser para chamar demais funções de atualização de bases.
 
-    if gerarDisparo:
-        gerarBasesDisparo(base_dados, limiteContato=limite_contato,num_partes=num_partes)
+    base_dados = gerar_dados()
 
+    if gerar_discador:
+        gerar_bases_discador(base_dados,status=status, limite_contato=limite_contato,)
 
+    if gerar_disparo:
+        gerar_bases_disparo(base_dados,status=status, limite_contato=limite_contato,num_partes=num_partes)
 
-def gerarDados(): ##Atualizar a base de cliente para gerar os arquivos de disparo e discador
+def gerar_dados(): ##Atualizar a base de cliente para gerar os arquivos de disparo e discador
     try:
         print('Carregando base de dados...')
         eng = engs.get_engine()
@@ -35,8 +33,7 @@ dia = dt.datetime.now().day
 mes = dt.datetime.now().month
 ano = dt.datetime.now().year
 
-
-def padronizarBaseDiscador(base_discador): ##Padroniza a Base de dados para atuação no discador
+def padronizar_bases_discador(base_discador): ##Padroniza a Base de dados para atuação no discador
 
     resultado = base_discador.copy()
     resultado.columns = (
@@ -45,7 +42,7 @@ def padronizarBaseDiscador(base_discador): ##Padroniza a Base de dados para atua
         .str.lower()
     )
 
-    baseRename = {
+    base_rename = {
     'base_discador':{
     'ies':'IES',
     'cód_candidato':'COD_CANDIDATO',
@@ -65,7 +62,7 @@ def padronizarBaseDiscador(base_discador): ##Padroniza a Base de dados para atua
 }
 
     resultado = resultado.rename(
-        columns=baseRename['base_discador']
+        columns=base_rename['base_discador']
     )
 
     dropCols = ['qtd_hsm', 'qtd_call', 'ultima tabulação','last_ticket_tag']
@@ -73,17 +70,20 @@ def padronizarBaseDiscador(base_discador): ##Padroniza a Base de dados para atua
 
     return resultado
 
-def gerarBasesDiscador(base_discador,limiteContato=None): ##Gera a base para atuação no discador, segmentada por IES e status do candidato
+def gerar_bases_discador(base_discador,status=None,limite_contato=None):  ##Gera a base para atuação no discador, segmentada por IES e status do candidato
+    
+    if status is not None:
+        base_discador = base_discador[base_discador['status'].isin(status)]
 
-    if limiteContato is None:
-        limiteContato = base_discador['qtd_call'].max()
-        print(f'Limite de contatos ajustado para {limiteContato} devido ao número máximo de chamadas na base de dados.')
+    if limite_contato is None:
+        limite_contato = base_discador['qtd_call'].max()
+        print(f'Limite de contatos ajustado para {limite_contato} devido ao número máximo de chamadas na base de dados.')
     
     
-    base_discador = base_discador[base_discador['qtd_call'] <= limiteContato]    
+    base_discador = base_discador[base_discador['qtd_hsm'] <= limite_contato]    
 
 
-    clusterDiscador = {
+    cluster_discador = {
     'PUCPR':1679,
     'EADUNISINOS':1680,
     'FAESA':1681,
@@ -93,34 +93,32 @@ def gerarBasesDiscador(base_discador,limiteContato=None): ##Gera a base para atu
     }
 
 
-    base_discador = padronizarBaseDiscador(base_discador)
+    base_discador = padronizar_bases_discador(base_discador)
 
-    for ies, campaingid in clusterDiscador.items():
-        baseDadosFiltrada = base_discador[(base_discador['IES'] == ies)]
+    for ies, campaingid in cluster_discador.items():
+        base_dados_filtrada = base_discador[(base_discador['IES'] == ies)]
         bases = {
             'Inscrito':'Inscrito',
             'Avaliado':'Avaliado',
             'Pré-Matriculado':'Pré-Matriculado',
         }
         for status in bases:
-            baseStatusFiltrada = baseDadosFiltrada[baseDadosFiltrada['ANO_MAIOR_NOTA'] == status]
-            rows = baseStatusFiltrada.shape[0]
+            base_status_filtrada = base_dados_filtrada[base_dados_filtrada['ANO_MAIOR_NOTA'] == status]
+            rows = base_status_filtrada.shape[0]
             if rows > 10:
-                templateName = fr'CAP_OPS_{campaingid}_{ies}_{ano}{mes}{dia}_{status}_Vol{rows}'
-                nomeArquivo = fr'C:\bases\olos\{templateName}.csv'
+                nome_arquivo = fr'CAP_OPS_{campaingid}_{ies}_{ano}{mes}{dia}_{status}_Vol{rows}'
+                caminho_arquivo = fr'C:\bases\olos\{nome_arquivo}.csv'
                 print(f'Gerando arquivo: {ies} - {status}...')
                 
                 try:
-                    baseStatusFiltrada.to_csv(nomeArquivo.upper(), sep=";", index=False, encoding="utf-8-sig")
-                    print(f'Arquivo gerado com sucesso: {nomeArquivo}')
+                    base_status_filtrada.to_csv(caminho_arquivo.upper(), sep=";", index=False, encoding="utf-8-sig")
+                    print(f'Arquivo gerado com sucesso: {caminho_arquivo}')
                 except Exception as e:
-                    print(f'Erro ao exportar arquivo: {nomeArquivo} - {str(e)}')    
-                
+                    print(f'Erro ao exportar arquivo: {caminho_arquivo} - {str(e)}')    
 
+def gerar_bases_disparo(base_dados,status=None, limite_contato=None,num_partes=None): ##Gera a base de dados para realização de disparos de HSM
 
-def gerarBasesDisparo(base_dados, limiteContato=None,num_partes=None): ##Gera a base de dados para realização de disparos de HSM
-
-    clusterDisparo = [
+    cluster_disparo = [
         'PUCPR',
         'EADUNISINOS',
         'FAESA',
@@ -129,13 +127,15 @@ def gerarBasesDisparo(base_dados, limiteContato=None,num_partes=None): ##Gera a 
         'UNIVALI'
     ]
 
+    if status is not None:
+        base_dados = base_dados[base_dados['status'].isin(status)]
 
-    if limiteContato is None:
-        limiteContato = base_dados['qtd_hsm'].max()
-        print(f'Limite de contatos ajustado para {limiteContato} devido ao número máximo de HSMs na base de dados.')
+    if limite_contato is None:
+        limite_contato = base_dados['qtd_hsm'].max()
+        print(f'Limite de contatos ajustado para {limite_contato} devido ao número máximo de HSMs na base de dados.')
 
-    base_dados = base_dados[base_dados['qtd_hsm'] <= limiteContato]
-    base_dados = base_dados[base_dados['ies'].isin(clusterDisparo)]
+    base_dados = base_dados[base_dados['qtd_hsm'] < limite_contato]
+    base_dados = base_dados[base_dados['ies'].isin(cluster_disparo)]
 
     if num_partes is None: ##Definir o número de partes para dividir a base 
         num_partes = 4 
@@ -143,35 +143,33 @@ def gerarBasesDisparo(base_dados, limiteContato=None,num_partes=None): ##Gera a 
 
     for ies, grupo in base_dados.groupby('ies'):
         
-        baseDadosFiltrada = grupo[['telefone','nome']].copy()
-        baseDadosFiltrada['nome'] = (
-            baseDadosFiltrada['nome']
+        base_dados_filtrada = grupo[['telefone','nome']].copy()
+        base_dados_filtrada['nome'] = (
+            base_dados_filtrada['nome']
                 .fillna('')
                 .str.split(' ')
                 .str[0].str.title()
             )
 
-        rows = baseDadosFiltrada.shape[0]
+        total_linhas = base_dados_filtrada.shape[0]
 
-        if rows >= 10:  ## Evitar gerar arquivos para bases muito pequenas
-            nomeBase = fr'CAP_OPS_GERAL_HSM_{dia}{mes}{ano}_{ies}'
-            linhasPorParte = math.ceil(rows / num_partes)
+        if total_linhas >= 10:  ## Evitar gerar arquivos para bases muito pequenas
+            nome_arquivo = fr'CAP_OPS_GERAL_HSM_{dia}{mes}{ano}_{ies}'
+            linhas_por_parte = math.ceil(total_linhas / num_partes)
             for i in range(num_partes):
-                inicio = i * linhasPorParte
-                fim = inicio + linhasPorParte
-                parte_df = baseDadosFiltrada.iloc[inicio:fim]
+                inicio = i * linhas_por_parte
+                fim = inicio + linhas_por_parte
+                parte_df = base_dados_filtrada.iloc[inicio:fim]
                 num_linhas = len(parte_df)
                 if num_linhas == 0:
                     continue
                 else:
-                    nomeArquivo = fr'{nomeBase}_Vol{num_linhas}_Pt{i+1}'
-                    caminhoArquivo = fr'C:\bases\disparos\graduacao\{nomeArquivo}.csv'
-                    parte_df.to_csv(caminhoArquivo, index=False,sep=';', encoding='utf-8')
-                    print(f'Gerando arquivo: {nomeBase} | Parte {i + 1} | {num_linhas} linhas.')
+                    nome_arquivo = fr'{nome_arquivo}_Vol{num_linhas}_Pt{i+1}'
+                    caminho_arquivo = fr'C:\bases\disparos\graduacao\{nome_arquivo}.csv'
+                    parte_df.to_csv(caminho_arquivo, index=False,sep=';', encoding='utf-8')
+                    print(f'Gerando arquivo: {nome_arquivo} | Parte {i + 1} | {num_linhas} linhas.')
 
 
 
 
-
-
-atualizarBase(limite_contato=15,num_partes=4, gerarDiscador=True, gerarDisparo=True)
+atualizar_base(limite_contato=15,num_partes=1, gerar_discador=True, gerar_disparo=True)

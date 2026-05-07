@@ -17,7 +17,22 @@ WITH base_sales AS (
         registration_at::DATE AS data_inscricao,
         campus AS polo,
         last_course_name AS curso,
-        ingress_mode AS "tipo ingresso",
+        CASE 
+            WHEN ingress_mode = '75' THEN 'PROUNI'
+            WHEN ingress_mode = 'Posgraduacao' THEN 'PosGraduação'
+            WHEN ingress_mode = '8' THEN 'Transferencia Interna'
+            WHEN ingress_mode ~* 'TransferenciaInterna|TransferênciaInterna' THEN 'Transferencia Interna'
+            WHEN ingress_mode = '100' THEN 'ENEM'
+            WHEN ingress_mode = '9' THEN 'Transferencia'
+            WHEN ingress_mode = 'A360 - FIN' THEN 'Artmed360 - Padrão - ONLINE'
+            WHEN ingress_mode = '74' THEN 'Vestibular online'
+            WHEN ingress_mode ~* 'Vestibular' THEN 'Vestibular online'
+            WHEN ingress_mode = 'A360-FI' THEN 'FORMA DE INGRESSO ONLINE'
+            WHEN ingress_mode = '001' THEN 'Teste Forma Ingresso'
+            WHEN ingress_mode = '11' THEN '2º Graduação(Ex Aluno)'
+            WHEN ingress_mode = '11-1' THEN '2º Graduação'
+            ELSE ingress_mode 
+        END AS "tipo ingresso",
         CASE 
             WHEN subscription_status = 'Desclassificado' THEN 'Inscrito'
             ELSE subscription_status
@@ -62,13 +77,10 @@ calls_final AS (
     FROM calls_enriched
 )
 
-SELECT
-    b.*,
-    c.qtd_call,
-    c.last_tab
-FROM base_sales b
-LEFT JOIN calls_final c
-    ON c.telefone = b.telefone
-WHERE 
-    b.last_ticket_tag IS DISTINCT FROM 'Não_acionar'
-    AND b.ies IS NOT NULL;
+
+select *
+from base_sales bs
+LEFT JOIN calls_final cf ON cf.telefone = bs.telefone
+WHERE bs.last_ticket_tag IS DISTINCT FROM 'Não_acionar'
+AND cf.last_tab IS DISTINCT FROM 'Não_acionar'
+AND bs.ies IS NOT NULL
