@@ -143,7 +143,7 @@ def gerar_bases_disparo(base_dados,status=None, limite_contato=None,num_partes=N
 
     for ies, grupo in base_dados.groupby('ies'):
         
-        base_dados_filtrada = grupo[['telefone','nome']].copy()
+        base_dados_filtrada = grupo[['celular','nome']].copy()
         base_dados_filtrada['nome'] = (
             base_dados_filtrada['nome']
                 .fillna('')
@@ -154,8 +154,10 @@ def gerar_bases_disparo(base_dados,status=None, limite_contato=None,num_partes=N
         total_linhas = base_dados_filtrada.shape[0]
 
         if total_linhas >= 10:  ## Evitar gerar arquivos para bases muito pequenas
-            nome_arquivo = fr'CAP_OPS_GERAL_HSM_{dia}{mes}{ano}_{ies}'
+
+            nome_base = fr'CAP_OPS_GERAL_HSM_{dia}_{mes}_{ano}_{ies}'
             linhas_por_parte = math.ceil(total_linhas / num_partes)
+            
             for i in range(num_partes):
                 inicio = i * linhas_por_parte
                 fim = inicio + linhas_por_parte
@@ -164,7 +166,7 @@ def gerar_bases_disparo(base_dados,status=None, limite_contato=None,num_partes=N
                 if num_linhas == 0:
                     continue
                 else:
-                    nome_arquivo = fr'{nome_arquivo}_Vol{num_linhas}_Pt{i+1}'
+                    nome_arquivo = fr'{nome_base}_Vol{num_linhas}_Pt{i+1}'
                     caminho_arquivo = fr'C:\bases\disparos\graduacao\{nome_arquivo}.csv'
                     parte_df.to_csv(caminho_arquivo, index=False,sep=';', encoding='utf-8')
                     print(f'Gerando arquivo: {nome_arquivo} | Parte {i + 1} | {num_linhas} linhas.')
@@ -172,4 +174,4 @@ def gerar_bases_disparo(base_dados,status=None, limite_contato=None,num_partes=N
 
 
 
-atualizar_base(limite_contato=15,num_partes=1, gerar_discador=True, gerar_disparo=True)
+atualizar_base(limite_contato=5,num_partes=4, gerar_discador=True, gerar_disparo=True)

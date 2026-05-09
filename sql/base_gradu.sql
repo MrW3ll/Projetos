@@ -13,7 +13,7 @@ WITH base_sales AS (
         email,
         contact_id AS hubspotcontactid,
         cpf,
-        RIGHT(REGEXP_REPLACE(phone, '[^0-9]', '', 'g'), 11) AS telefone,
+        RIGHT(REGEXP_REPLACE(phone, '[^0-9]', '', 'g'), 11) AS celular,
         registration_at::DATE AS data_inscricao,
         campus AS polo,
         last_course_name AS curso,
@@ -80,7 +80,7 @@ calls_final AS (
 
 select *
 from base_sales bs
-LEFT JOIN calls_final cf ON cf.telefone = bs.telefone
+LEFT JOIN calls_final cf ON cf.telefone = bs.celular
 WHERE bs.last_ticket_tag IS DISTINCT FROM 'Não_acionar'
 AND cf.last_tab IS DISTINCT FROM 'Não_acionar'
 AND bs.ies IS NOT NULL

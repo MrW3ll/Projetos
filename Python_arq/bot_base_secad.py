@@ -11,6 +11,8 @@ from pathlib import Path
 warnings.filterwarnings('ignore',category=FutureWarning)
 eng = engines.get_engine()
 
+
+## importação e leitura de bases para limpeza ## 
 queries ={
     'sispag':text(engines.load_query('qry_sispag_lim.sql')),
     'qtd_calls':text(engines.load_query('qry_qtd_call_lim.sql')),
@@ -25,7 +27,7 @@ bases_limpador = {}
 try:
     for nome, query in queries.items():
         print(f'Carregando query: {nome}...')
-        bases_limpador['nome'] = pd.read_sql(query, eng)
+        bases_limpador[nome] = pd.read_sql(query, eng)
 
     blacklist = Path(r'C:\bases\Limpador\black_list_new.xlsx')    
     df_blacklist = pd.read_excel(blacklist,dtype=str)
@@ -74,6 +76,62 @@ try:
 except Exception as e:
     print(f'Erro... {e}')
 
+## importação e leitura de bases para limpeza ## 
+
+
+### Leitura e importação da base crua ####
+
+Caminho_builder = Path(r'C:\Users\wconceicao\OneDrive - Grupo A Educação SA\Área de Trabalho\Construtores\base_builder_V2.xlsm')
+sheets_builder = [
+    'base_carrinho',
+    'base_inativa',
+    'base_ATIVA'
+]
+
+bases = {}
+
+for sheet in sheets_builder:
+    df = pd.read_excel(
+        Caminho_builder,
+        sheet_name=sheet,
+        dtype=str,
+        engine='openpyxl'
+    )
+
+    bases[sheet] = df
+    print(f'Sheet "{sheet}" carregada: {df.shape}')
+
+df_inativa = bases['base_inativa']
+df_ativa = bases['base_ATIVA']
+df_carrinho = bases['base_carrinho']
+
+def diagnostico_copy(df,nome):
+    print(f'\n📊 {nome}')
+    print('Linhas totais        :', df.shape[0])
+    print('Copy nulos           :', df['copy'].isna().sum())
+    print('Copy vazios ("")     :', (df['copy'].str.strip() == '').sum())
+    print('Copy duplicados      :', df['copy'].duplicated().sum())
+
+diagnostico_copy(df_inativa, 'Base Inativa')
+diagnostico_copy(df_ativa, 'Base Ativa')
+diagnostico_copy(df_carrinho, 'Base Carrinho')    
+
+df_inativa = bases['base_inativa']
+df_inativa = df_inativa.sort_values(by=['copy'],ascending=True)
+df_inativa = df_inativa.drop_duplicates(subset='copy',keep='first')
+df_inativa = df_inativa.reset_index(drop=True)
+
+df_ativa = bases['base_ATIVA']
+df_ativa = df_ativa.sort_values(by=['copy'], ascending=True)
+df_ativa = df_ativa.drop_duplicates(subset='copy',keep='first')
+df_ativa = df_ativa.reset_index(drop=True)
+
+df_carrinho = bases['base_carrinho']
+df_carrinho = df_carrinho.sort_values(by=['copy'],ascending=True)
+df_carrinho = df_carrinho.drop_duplicates(subset='copy',keep='first')
+df_carrinho = df_carrinho.reset_index(drop=True)
+
+### Leitura e importação da base crua ####
 
 ## FUNÇÕES - Inicio ## 
 def padrao_e_filtro(
@@ -258,8 +316,6 @@ def lead_score_blip(df_base,df_leadscore_blip):
     resultado['leadscore_blip'] = resultado['phone'].isin(leadscore['phone_number'])
     resultado = resultado[resultado['leadscore_blip'] == False]
 
-
-
     return resultado
 
 def qtd_calls(df_base,qtd_calls,limit=10):
@@ -282,17 +338,60 @@ def qtd_calls(df_base,qtd_calls,limit=10):
 
     resultado = resultado.drop(columns=['phone_number','call_count'])
     
+    return resultado
+
+def ultima_compra(df_base,sispag):
+
+    resultado = df_base.copy()
+    df_sispag = sispag.copy()
+
+    df_sispag['id_copy'] = df_sispag['email'] + ';' + df_sispag['celular']
+    resultado['ultima_compra'] = resultado['copy'].isin(df_sispag['id_copy'])
 
     return resultado
 
-def ultima_compra():
-    pass
 
-def ultimo_contato_olos():
-    pass
+def ultimo_contato_olos(df_base,df_tab_olos):
+    
+    resultado = df_base.copy()
+    df_olos = df_tab_olos.copy()
 
-def ultimo_contato_blip():
-    pass
+    df_olos['customer_id'] = (
+        df_olos['customer_id'].str.strip().str.lower()
+    )
+
+    df_olos['phone'] = (
+        df_olos['phone'].str.replace(r'\D','',regex=True)
+    )
+
+    df_olos['id_copy'] = df_olos['customer_id'] + ';' + df_olos['phone']
+
+    resultado = resultado.merge(
+        df_olos[['id_copy','status_retorno']],
+        left_on='copy',
+        right_on = 'id_copy',
+        how='left'
+    )
+
+    return resultado
+
+def ultimo_contato_blip(df_base,df_tab_blip):
+    
+    resultado = df_base.copy()
+    df_blip = df_tab_blip.copy()
+
+    df_blip['contact_id_trimmed'] = (
+        df_blip['contact_id_trimmed'].str.replace(r'\D','',regex=True)
+    )
+
+    resultado = resultado.merge(
+        df_blip[['contact_id_trimmed','status_retorno']],
+        left_on='phone',
+        right_on = 'contact_id_trimmed',
+        how='left'
+    )
+
+    return resultado
 
 def exportar_bases():
     pass
@@ -302,3 +401,6 @@ def filtro_final():
 
 
 ## FUNÇÕES - Fim ##
+
+
+print(bases_limpador)
