@@ -174,4 +174,4 @@ def gerar_bases_disparo(base_dados,status=None, limite_contato=None,num_partes=N
 
 
 
-atualizar_base(limite_contato=5,num_partes=4, gerar_discador=True, gerar_disparo=True)
+atualizar_base(limite_contato=10,num_partes=4, gerar_discador=False, gerar_disparo=True)

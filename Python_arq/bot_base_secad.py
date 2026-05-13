@@ -148,7 +148,10 @@ def padrao_e_filtro(
         df_blacklist = None,
         
     ):
-    resultado = padronizar(df_base,mapa_colunas)
+
+    if base_type is not None:
+        resultado = padronizar(df_base,mapa_colunas)
+    
     resultado = filtrar_base(resultado, area=area, base_type=base_type, program=program)
     resultado = limpeza_minima(resultado)
     resultado = lead_score_olos(resultado,df_leadscore_olos)
@@ -156,8 +159,14 @@ def padrao_e_filtro(
 
     if df_blacklist is not None:
         resultado = verificar_blacklist(resultado, df_blacklist)
+
     resultado = rod_atual(resultado, df_rodando_atualmente)
+
+    if base_type is not None:
+        resultado = filtro_final(resultado,base_type=base_type)
     return resultado
+
+
 
 def padronizar(df_base,mapa_colunas):
     df_padrao = df_base.rename(columns=mapa_colunas)
@@ -347,6 +356,8 @@ def ultima_compra(df_base,sispag):
 
     df_sispag['id_copy'] = df_sispag['email'] + ';' + df_sispag['celular']
     resultado['ultima_compra'] = resultado['copy'].isin(df_sispag['id_copy'])
+    resultado['ultima_compra'] = resultado[resultado['ultima_compra'] == False]
+    resultado = resultado.drop(columns=['ultima_compra'])
 
     return resultado
 
@@ -396,8 +407,113 @@ def ultimo_contato_blip(df_base,df_tab_blip):
 def exportar_bases():
     pass
 
-def filtro_final():
-    pass
+def filtro_final(df_base,base_type):
+
+    colunas_bases = {
+        
+        'base_ativa':{
+            'Id_do_cliente_': lambda df: df['program'],
+            'Nome': lambda df: df['name'],
+            'CPF': lambda df: df['cpf'],
+            'E_mail': lambda df: df['email'],
+            'Fone_1': lambda df: df['phone'],
+            'Fone_2': lambda df: df['phone_alt'],
+            'Fone_3': None,
+            'Fone_4': None,
+            'ORIGEM': 'BASE ATIVA',
+            'ORIGEM_DO_LEAD2': lambda df: 'BASE ATIVA ' + df['program'],
+            'PROFISSAO': lambda df: df['area'],
+            'ESPECIALIDADE': lambda df: df['expertise'],
+            'LEAD_SCORING': None,
+            'PRODUTO': lambda df: df['program'],
+            'A_LTIMO_REGISTRO': None,
+            'LOGRADOURO': lambda df: df['address'],
+            'BAIRRO': None,
+            'CIDADE': lambda df: df['city'],
+            'UF': None,
+            'CEP': None,
+            'DATA_NASCIMENTO': lambda df: df['birth_date'],
+            'DADOS_DO_PAGAMENTO': lambda df: df['payment_type'],
+            'MOTIVO_DE_CANCELAMENTO': lambda df: df['invoice_type'],
+            'DATA_IMPORTA__O': None,
+            'URL_2': lambda df: df['end_date']
+        },
+
+        'base_inativa':{
+            'Id_do_cliente_':lambda df: df['client_id'],
+            'Nome':lambda df: df['name'],
+            'CPF':lambda df: df['cpf'],
+            'E_mail':lambda df: df['email'],
+            'Fone_1':lambda df: df['phone'],
+            'Fone_2':lambda df: df['phone_2'],
+            'Fone_3':None,
+            'Fone_4':None,
+            'ORIGEM':lambda df: df['type'],
+            'ORIGEM_DO_LEAD2':lambda df: df['type'] + ' ' + df['program'],
+            'PROFISSAO':lambda df: df['area'],
+            'ESPECIALIDADE':None,
+            'LEAD_SCORING':None,
+            'PRODUTO':lambda df: df['program'],
+            'A_LTIMO_REGISTRO':lambda df: df['cancellation_date'],
+            'LOGRADOURO':lambda df: df['address'],
+            'BAIRRO':None,
+            'CIDADE':lambda df: df['city'],
+            'UF':lambda df: df['state'],
+            'CEP':None,
+            'DATA_NASCIMENTO':None,
+            'DADOS_DO_PAGAMENTO':None,
+            'MOTIVO_DE_CANCELAMENTO':lambda df: df['kind'],
+            'DATA_IMPORTA__O':None,
+            'URL_2':None
+        },
+
+        'base_carrinho':{
+            'Id_do_cliente_': lambda df: df['requestid'],
+            'Nome': lambda df: df['nome'],
+            'CPF': None,
+            'E_mail': lambda df: df['email'],
+            'Fone_1': lambda df: df['phone'],
+            'Fone_2': None,
+            'Fone_3': None,
+            'Fone_4': None,
+            'ORIGEM': 'Carrinho Abandonado',
+            'ORIGEM_DO_LEAD2': lambda df: df['programa'],
+            'PROFISSAO': None,
+            'ESPECIALIDADE': None,
+            'LEAD_SCORING': None,
+            'PRODUTO': lambda df: df['programa'],
+            'A_LTIMO_REGISTRO': lambda df: df['data'],
+            'LOGRADOURO': None,
+            'BAIRRO': None,
+            'CIDADE': None,
+            'UF': None,
+            'CEP': None,
+            'DATA_NASCIMENTO': None,
+            'DADOS_DO_PAGAMENTO': None,
+            'MOTIVO_DE_CANCELAMENTO': None,
+            'DATA_IMPORTA__O': None,
+            'URL_2': lambda df: df['phone'] + ';' + df['nome'] + ';' + df['produtos']
+            
+        },
+
+        'container_base':{
+
+        },
+
+        'bases_hubspot':{
+            
+        }
+    }
+
+
+    resultado = pd.DataFrame({
+        col_destino: col_origem(df_base) if callable(col_origem) else col_origem
+        for col_destino, col_origem in colunas_bases[base_type].items()
+    })
+
+    resultado['DATA_IMPORTA__O'] = dt.date.today()
+
+    return resultado
 
 
 ## FUNÇÕES - Fim ##
