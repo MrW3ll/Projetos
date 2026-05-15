@@ -8,9 +8,18 @@ from sqlalchemy import text
 from sqlalchemy import text
 
 
-def atualizar_base(limite_contato=None,status=None ,num_partes=None, gerar_discador=False, gerar_disparo=False): #Função mãe ser para chamar demais funções de atualização de bases.
+def atualizar_base(
+        limite_contato=None,
+        status=None,
+        num_partes=None,
+        gerar_discador=False,
+        gerar_disparo=False,
+        funil=None): #Função mãe ser para chamar demais funções de atualização de bases.
 
     base_dados = gerar_dados()
+
+    if etapa_funil is not None:
+        base_dados = etapa_funil(base_dados,funil=funil)
 
     if gerar_discador:
         gerar_bases_discador(base_dados,status=status, limite_contato=limite_contato,)
@@ -32,6 +41,23 @@ def gerar_dados(): ##Atualizar a base de cliente para gerar os arquivos de dispa
 dia = dt.datetime.now().day
 mes = dt.datetime.now().month
 ano = dt.datetime.now().year
+
+def etapa_funil(base_dados,funil):
+
+    resultado = base_dados.copy()
+
+    if 'status' not in resultado.columns:
+        raise ValueError ('Coluna não encontrada')
+
+    fase_funil = funil if isinstance(funil, list) else [funil]
+    
+    resultado = resultado[
+        resultado['status']
+        .str.upper()
+        .isin([a.upper() for a in fase_funil])
+        ]
+
+    return resultado
 
 def padronizar_bases_discador(base_discador): ##Padroniza a Base de dados para atuação no discador
 
@@ -173,5 +199,18 @@ def gerar_bases_disparo(base_dados,status=None, limite_contato=None,num_partes=N
 
 
 
+status = [
+    ##'avaliado',
+    'Pré-Matriculado',
+    ##'Inscrito'
+]
 
-atualizar_base(limite_contato=10,num_partes=4, gerar_discador=False, gerar_disparo=True)
+
+
+atualizar_base(
+    limite_contato=10,
+    num_partes=4,
+    gerar_discador=False,
+    gerar_disparo=True,
+    funil=status
+    )

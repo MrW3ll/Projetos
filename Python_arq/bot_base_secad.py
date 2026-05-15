@@ -134,43 +134,29 @@ df_carrinho = df_carrinho.reset_index(drop=True)
 ### Leitura e importação da base crua ####
 
 ## FUNÇÕES - Inicio ## 
-def padrao_e_filtro(
+def limpar_base(
         df_base,
-        mapa_colunas,
-        df_rodando_atualmente,
-        df_leadscore_olos,
-        df_leadscore_blip,
-        
-        
+        df_colunas,
+
+        limite_calls=10,
         area=None,
         base_type=None,
         program=None,
-        df_blacklist = None,
-        
-    ):
 
-    if base_type is not None:
-        resultado = padronizar(df_base,mapa_colunas)
-    
-    resultado = filtrar_base(resultado, area=area, base_type=base_type, program=program)
-    resultado = limpeza_minima(resultado)
-    resultado = lead_score_olos(resultado,df_leadscore_olos)
-    resultado = lead_score_blip(resultado,df_leadscore_blip)
 
-    if df_blacklist is not None:
-        resultado = verificar_blacklist(resultado, df_blacklist)
+):
+    resultado = padroniza_colunas(df_base,df_colunas)
+    resultado = filtrar_base(df_base,area=area,base_type=base_type,program=program)
+    resultado = verificar_blacklist(resultado,base_blacklist=df_blacklist)
+    resultado = rod_atual(resultado,base_rodando_atualmente=rod_atualmente)
+    resultado = lead_score_olos(resultado,bases_limpador['qry_leadscore_olos'])
+    resultado = lead_score_blip(resultado,bases_limpador['qry_leadscore_blip'])
+    resultado = qtd_calls(resultado,bases_limpador['qtd_calls'],limite_calls=limite_calls)
+    resultado = ultima_compra(resultado,bases_limpador['sispag'])
+    resultado = ultimo_contato_olos(resultado,bases_limpador['tab_olos'])
+    resultado = ultimo_contato_blip(resultado,bases_limpador['tab_blip'])
 
-    resultado = rod_atual(resultado, df_rodando_atualmente)
-
-    if base_type is not None:
-        resultado = filtro_final(resultado,base_type=base_type)
     return resultado
-
-
-
-def padronizar(df_base,mapa_colunas):
-    df_padrao = df_base.rename(columns=mapa_colunas)
-    return df_padrao[list(mapa_colunas.values)]
 
 Depara_colunas = {
     'base_inativa':{
@@ -192,11 +178,18 @@ Depara_colunas = {
         'email':'email',
         'area':'area',
         'copy':'copy'
-    },
-    'base_hubspot':''
+    }
 }
 
-def filtrar_base(df_base, area=None, base_type=None, program=None):
+def padroniza_colunas(df_base,mapa_colunas):
+        
+        resultado = df_base.copy()
+        resultado = resultado.rename(columns=mapa_colunas)
+        resultado = limpeza_minima(resultado)
+        
+        return resultado
+
+def filtrar_base(df_base, area=None, base_type=None, program=None): ## Reliza filtragem de Area, Tipo Ou programa ##
     resultado = df_base.copy()
 
     if area is not None:
@@ -225,7 +218,7 @@ def filtrar_base(df_base, area=None, base_type=None, program=None):
 
     return resultado
 
-def limpeza_minima(df_base):
+def limpeza_minima(df_base): ##utilizado no padronizar ##
     resultado = df_base.copy()
 
     resultado = resultado[
@@ -247,8 +240,8 @@ def limpeza_minima(df_base):
 
     return resultado
 
-def remover_duplicadas(df_base,id_key='copy'):
-    ## utilizado na função LIMPEZA_MININA() ## 
+def remover_duplicadas(df_base,id_key='copy'):   ## utilizado na função LIMPEZA_MININA() ## 
+  
     return(
         df_base
         .sort_values(by=id_key)
@@ -256,7 +249,8 @@ def remover_duplicadas(df_base,id_key='copy'):
         .reset_index(drop=True)
     )
 
-def padrao_email_phone(df_base):
+def padrao_email_phone(df_base):  ## utilizado na função LIMPEZA_MININA() ## 
+   
     resultado = df_base.copy()
 
     resultado['email'] = (
@@ -268,7 +262,8 @@ def padrao_email_phone(df_base):
     )
     return resultado
 
-def validar_num_movel(df_base):
+def validar_num_movel(df_base): ## utilizado na função LIMPEZA_MININA() ## 
+    
     resultado = df_base.copy()
 
     resultado['tel_movel'] = (
@@ -276,12 +271,13 @@ def validar_num_movel(df_base):
         resultado['phone'].str[2].eq('9')
     )
     resultado = resultado[resultado['tel_movel'] == True]
+    resultado = resultado.drop(columns=['tel_movel'])
 
     return resultado
 
-def verificar_blacklist(df_base,blacklist):
+def verificar_blacklist(df_base,base_blacklist):
     resultado = df_base.copy()
-    df_blacklist = blacklist.copy()
+    df_blacklist = base_blacklist.copy()
     
     df_blacklist['telefone'] = (
         df_blacklist['telefone'].astype(str).str.replace(r'\D','',regex=True)    
@@ -292,9 +288,9 @@ def verificar_blacklist(df_base,blacklist):
 
     return resultado
 
-def rod_atual(df_base,rod_atual):
+def rod_atual(df_base,base_rodando_atualmente):
     resultado = df_base.copy()
-    df_rodando_atualmente = rod_atual
+    df_rodando_atualmente = base_rodando_atualmente
 
     resultado['rodando_atualmente'] = resultado['phone'].isin(df_rodando_atualmente['fone_1'])
     resultado = resultado[resultado['rodando_atualmente'] == False]
@@ -311,6 +307,7 @@ def lead_score_olos(df_base,df_leadscore_olos):
     
     resultado['leadscore_olos'] = resultado['phone'].isin(leadscore['phone_number'])
     resultado = resultado[resultado['leadscore_olos'] == False]
+    resultado = resultado.drop(columns=['leadscore_olos'])
 
     return resultado
 
@@ -324,29 +321,29 @@ def lead_score_blip(df_base,df_leadscore_blip):
 
     resultado['leadscore_blip'] = resultado['phone'].isin(leadscore['phone_number'])
     resultado = resultado[resultado['leadscore_blip'] == False]
+    resultado = resultado.drop(columns=['leadscore_blip'])
 
     return resultado
 
-def qtd_calls(df_base,qtd_calls,limit=10):
+def qtd_calls(df_base, df_qtd_call, limite_calls):
     resultado = df_base.copy()
-    qtd = qtd_calls.copy()
+    qtd = df_qtd_call.copy()
 
     qtd['phone_number'] = (
-        qtd['phone_number'].astype(str).str.replace(r'\D','',regex=True)
-    )
+    qtd['phone_number'].astype(str).str.replace(r'\D','',regex=True)
+)
     
     resultado = resultado.merge(
-        qtd,
+       qtd,
         left_on='phone', 
         right_on='phone_number', 
         how='left'
     )
 
-    resultado['call_count'] = resultado['call_count'].fillna(0).astype(int)
-    resultado = resultado[resultado['call_count'] < limit]
+    resultado['TOTAL_CALLS'] = resultado['TOTAL_CALLS'].fillna(0).astype(int)
+    resultado = resultado[resultado['TOTAL_CALLS'] <= limite_calls]
+    resultado = resultado.drop(columns=['phone_number', 'TOTAL_CALLS'])
 
-    resultado = resultado.drop(columns=['phone_number','call_count'])
-    
     return resultado
 
 def ultima_compra(df_base,sispag):
@@ -356,11 +353,10 @@ def ultima_compra(df_base,sispag):
 
     df_sispag['id_copy'] = df_sispag['email'] + ';' + df_sispag['celular']
     resultado['ultima_compra'] = resultado['copy'].isin(df_sispag['id_copy'])
-    resultado['ultima_compra'] = resultado[resultado['ultima_compra'] == False]
+    resultado = resultado[resultado['ultima_compra'] == False]
     resultado = resultado.drop(columns=['ultima_compra'])
 
     return resultado
-
 
 def ultimo_contato_olos(df_base,df_tab_olos):
     
@@ -383,6 +379,9 @@ def ultimo_contato_olos(df_base,df_tab_olos):
         right_on = 'id_copy',
         how='left'
     )
+    
+    resultado = resultado[resultado['status_retorno'] != 'Não retornar']
+    resultado = resultado.drop(columns=['status_retorno','id_copy'])
 
     return resultado
 
@@ -403,9 +402,6 @@ def ultimo_contato_blip(df_base,df_tab_blip):
     )
 
     return resultado
-
-def exportar_bases():
-    pass
 
 def filtro_final(df_base,base_type):
 
@@ -506,17 +502,26 @@ def filtro_final(df_base,base_type):
     }
 
 
-    resultado = pd.DataFrame({
-        col_destino: col_origem(df_base) if callable(col_origem) else col_origem
-        for col_destino, col_origem in colunas_bases[base_type].items()
-    })
+    resultado = pd.DataFrame()
+    for col_destino, col_origem in colunas_bases[base_type].items():
+        if callable(col_origem):
+            resultado[col_destino] = col_origem(df_base)
+        elif col_origem is not None:
+            resultado[col_destino] = col_origem
+        else:
+            resultado[col_destino] = None
 
     resultado['DATA_IMPORTA__O'] = dt.date.today()
-
     return resultado
 
 
+
+def exportar_bases():
+    pass
 ## FUNÇÕES - Fim ##
 
 
-print(bases_limpador)
+base_inativa = limpar_base(
+    df_inativa,
+    Depara_colunas['base_inativa']
+)
