@@ -200,9 +200,9 @@ def gerar_bases_disparo(base_dados,status=None, limite_contato=None,num_partes=N
 
 
 status = [
-    ##'avaliado',
+    'avaliado',
     'Pré-Matriculado',
-    ##'Inscrito'
+    'Inscrito'
 ]
 
 
@@ -210,7 +210,7 @@ status = [
 atualizar_base(
     limite_contato=10,
     num_partes=4,
-    gerar_discador=False,
+    gerar_discador=True,
     gerar_disparo=True,
     funil=status
     )
